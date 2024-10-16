@@ -22,6 +22,11 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
+    sentinel:
+      transport:
+        dashboard: 192.168.150.101:8090
+
+
 tj:
   swagger:
     enable: true
