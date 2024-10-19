@@ -61,7 +61,7 @@ public class LearningLessonController {
     LearningLessonVO queryLessonByCourseId(@ApiParam @PathVariable("courseId") Long courseId) {
         return lessonService.queryLessonByCourseId(courseId);
     }
-    @GetMapping("/lessons/{courseId}/count")
+    @GetMapping("/{courseId}/count")
     @ApiOperation("查看课程的学习人数")
     Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId) {
     return lessonService.countLearningLessonByCourse(courseId);

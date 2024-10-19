@@ -182,6 +182,10 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         if (lesson == null) {
             return null;
         }
+        if(LocalDateTime.now().isAfter(lesson.getExpireTime()))
+        {
+            return null;
+        }
         return lesson.getId();
     }
 
