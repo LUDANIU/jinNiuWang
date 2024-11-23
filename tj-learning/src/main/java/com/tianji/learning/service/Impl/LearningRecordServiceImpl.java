@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -87,25 +88,53 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
     }
 
     /**
-     * @param formDTO
-     * @param isFirstFinish
+     * 修改课表
      */
     private void changeLesson(LearningRecordFormDTO formDTO, Boolean isFirstFinish) {
         return;
     }
 
     /**
-     * @param formDTO
+     * 修改学习记录
      */
     private Boolean changeLessonRecord(LearningRecordFormDTO formDTO, Long userId) {
-        return null;
+        //判断是否是第一次学习这章
+        LearningRecord record = this.lambdaQuery()
+                .eq(LearningRecord::getLessonId, formDTO.getLessonId())
+                .eq(LearningRecord::getSectionId, formDTO.getSectionId())
+                .one();
+        //是第一次学习，新增学习记录
+        if (record == null) {
+            LearningRecord newRecord = BeanUtils.copyBean(formDTO, LearningRecord.class);
+            newRecord.setUserId(userId);
+            this.save(newRecord);
+            return false;
+        } else {
+            //不是第一次学习。判断是否是第一次学完
+            Boolean isFirstFinish =!record.getFinished()&& formDTO.getMoment()>=formDTO.getDuration() * 0.95;
+            Boolean update = this.lambdaUpdate()
+                    .set(isFirstFinish, LearningRecord::getFinished, isFirstFinish)
+                    .set(isFirstFinish, LearningRecord::getFinishTime, LocalDateTime.now())
+                    .set(LearningRecord::getMoment, formDTO.getMoment())
+                    .eq(LearningRecord::getId, record.getId())
+                    .update();
+            if(!update){
+                throw new BizIllegalException("更新失败");
+            }
+            return isFirstFinish;
+        }
     }
 
     /**
-     *
+     * 修改考试记录
      */
     private Boolean changeExamRecord(LearningRecordFormDTO formDTO, Long userId) {
-        return true;
+        LearningRecord record = BeanUtils.copyBean(formDTO, LearningRecord.class);
+        record.setUserId(userId);
+        record.setFinished(true);
+        record.setFinishTime(LocalDateTime.now());
+        Boolean isSave = this.save(record);
+        return isSave;
     }
 
 }
