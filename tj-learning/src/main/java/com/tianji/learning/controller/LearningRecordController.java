@@ -1,7 +1,6 @@
 package com.tianji.learning.controller;
 
 
-import com.tianji.api.client.learning.LearningClient;
 import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.learning.domain.dto.LearningRecordFormDTO;
 import com.tianji.learning.service.ILearningRecordService;
