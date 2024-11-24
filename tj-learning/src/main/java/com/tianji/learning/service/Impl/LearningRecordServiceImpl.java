@@ -1,5 +1,7 @@
 package com.tianji.learning.service.Impl;
 
+import com.tianji.api.client.course.CourseClient;
+import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.api.dto.leanring.LearningRecordDTO;
 import com.tianji.common.exceptions.BizIllegalException;
@@ -8,6 +10,7 @@ import com.tianji.common.utils.UserContext;
 import com.tianji.learning.domain.dto.LearningRecordFormDTO;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.po.LearningRecord;
+import com.tianji.learning.enums.LessonStatus;
 import com.tianji.learning.enums.SectionType;
 import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
@@ -32,6 +35,7 @@ import java.util.List;
 public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper, LearningRecord> implements ILearningRecordService {
     private final LearningRecordMapper learningRecordMapper;
     private final ILearningLessonService lessonService;
+    private final CourseClient courseClient;
 
     /**
      * 根据courseId查询学习记录
@@ -91,6 +95,29 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
      * 修改课表
      */
     private void changeLesson(LearningRecordFormDTO formDTO, Boolean isFirstFinish) {
+        //根据lessonId查询课表信息
+        LearningLesson lesson=lessonService.getById(formDTO.getLessonId());
+        if(lesson==null){
+            throw new BizIllegalException("您没有该课程");
+        }
+        //allFinish表示是否完成了该课程的全部学习
+        Boolean allFinish = false;
+        //判断是否学完全部课程
+        if (isFirstFinish) {
+            CourseFullInfoDTO courseInfo= courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
+            if(courseInfo==null){
+                throw new BizIllegalException("课程不存在");
+            }
+            allFinish=lesson.getLearnedSections()+1>=courseInfo.getSectionNum();
+        }
+        //更新课表
+        lessonService.lambdaUpdate()
+                .set(lesson.getLearnedSections()==0,LearningLesson::getStatus, LessonStatus.LEARNING)
+                .set(allFinish,LearningLesson::getStatus,LessonStatus.FINISHED)
+                .set(isFirstFinish,LearningLesson::getLearnedSections,lesson.getLearnedSections()+1)
+                .set(LearningLesson::getLatestSectionId,formDTO.getSectionId())
+                .set(LearningLesson::getLatestLearnTime,LocalDateTime.now())
+                .eq(LearningLesson::getId, lesson.getId());
         return;
     }
 
@@ -109,7 +136,8 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             newRecord.setUserId(userId);
             this.save(newRecord);
             return false;
-        } else {
+        } //不是第一次学习
+        else {
             //不是第一次学习。判断是否是第一次学完
             Boolean isFirstFinish =!record.getFinished()&& formDTO.getMoment()>=formDTO.getDuration() * 0.95;
             Boolean update = this.lambdaUpdate()
