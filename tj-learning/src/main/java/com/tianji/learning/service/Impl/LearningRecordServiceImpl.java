@@ -96,29 +96,29 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
      */
     private void changeLesson(LearningRecordFormDTO formDTO, Boolean isFirstFinish) {
         //根据lessonId查询课表信息
-        LearningLesson lesson=lessonService.getById(formDTO.getLessonId());
-        if(lesson==null){
+        LearningLesson lesson = lessonService.getById(formDTO.getLessonId());
+        if (lesson == null) {
             throw new BizIllegalException("您没有该课程");
         }
         //allFinish表示是否完成了该课程的全部学习
         Boolean allFinish = false;
         //判断是否学完全部课程
         if (isFirstFinish) {
-            CourseFullInfoDTO courseInfo= courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
-            if(courseInfo==null){
+            CourseFullInfoDTO courseInfo = courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
+            if (courseInfo == null) {
                 throw new BizIllegalException("课程不存在");
             }
-            allFinish=lesson.getLearnedSections()+1>=courseInfo.getSectionNum();
+            allFinish = lesson.getLearnedSections() + 1 >= courseInfo.getSectionNum();
         }
         //更新课表
         lessonService.lambdaUpdate()
-                .set(lesson.getLearnedSections()==0,LearningLesson::getStatus, LessonStatus.LEARNING)
-                .set(allFinish,LearningLesson::getStatus,LessonStatus.FINISHED)
-                .set(isFirstFinish,LearningLesson::getLearnedSections,lesson.getLearnedSections()+1)
-                .set(LearningLesson::getLatestSectionId,formDTO.getSectionId())
-                .set(LearningLesson::getLatestLearnTime,LocalDateTime.now())
-                .eq(LearningLesson::getId, lesson.getId());
-        return;
+                .set(lesson.getLearnedSections() == 0, LearningLesson::getStatus, LessonStatus.LEARNING.getValue())
+                .set(allFinish, LearningLesson::getStatus, LessonStatus.FINISHED.getValue())
+                .set(isFirstFinish, LearningLesson::getLearnedSections, lesson.getLearnedSections()+1)
+                .set(LearningLesson::getLatestSectionId, formDTO.getSectionId())
+                .set(LearningLesson::getLatestLearnTime, formDTO.getCommitTime())
+                .eq(LearningLesson::getId, lesson.getId())
+                .update();
     }
 
     /**
@@ -139,14 +139,14 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         } //不是第一次学习
         else {
             //不是第一次学习。判断是否是第一次学完
-            Boolean isFirstFinish =!record.getFinished()&& formDTO.getMoment()>=formDTO.getDuration() * 0.95;
+            Boolean isFirstFinish = !record.getFinished() && formDTO.getMoment() >= formDTO.getDuration() * 0.95;
             Boolean update = this.lambdaUpdate()
                     .set(isFirstFinish, LearningRecord::getFinished, isFirstFinish)
                     .set(isFirstFinish, LearningRecord::getFinishTime, LocalDateTime.now())
                     .set(LearningRecord::getMoment, formDTO.getMoment())
                     .eq(LearningRecord::getId, record.getId())
                     .update();
-            if(!update){
+            if (!update) {
                 throw new BizIllegalException("更新失败");
             }
             return isFirstFinish;

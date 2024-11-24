@@ -303,7 +303,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         for (ChapterVO chapter : vo.getChapters()) {
             for (SectionVO section : chapter.getSections()) {
                 LearningRecordDTO r = rMap.get(section.getId());
-                if (r == null) continue;
+                if (r == null) {
+                    continue;
+                }
                 section.setFinished(r.getFinished());
                 section.setMoment(r.getMoment());
             }
