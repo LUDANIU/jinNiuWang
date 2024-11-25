@@ -11,11 +11,14 @@ import com.tianji.api.dto.course.CourseSimpleInfoDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.common.exceptions.BadRequestException;
+import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.UserContext;
+import com.tianji.learning.domain.dto.LearningPlanDTO;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.enums.PlanStatus;
 import com.tianji.learning.mapper.LearningLessonMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -182,8 +185,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         if (lesson == null) {
             return null;
         }
-        if(lesson.getExpireTime()!=null&&LocalDateTime.now().isAfter(lesson.getExpireTime()))
-        {
+        if (lesson.getExpireTime() != null && LocalDateTime.now().isAfter(lesson.getExpireTime())) {
             return null;
         }
         return lesson.getId();
@@ -213,6 +215,31 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         return this.lambdaQuery()
                 .eq(LearningLesson::getCourseId, courseId)
                 .count();
+    }
+
+    /**
+     * 制定学习计划
+     *
+     * @param learningPlanDTO
+     */
+    @Override
+    public void createLearningPlan(LearningPlanDTO learningPlanDTO) {
+        //获取用户id
+        Long userId = UserContext.getUser();
+        //查询课表信息
+        LearningLesson lesson = this.lambdaQuery()
+                .eq(LearningLesson::getUserId, userId)
+                .eq(LearningLesson::getCourseId, learningPlanDTO.getCourseId())
+                .one();
+        if (lesson == null) {
+            throw new BizIllegalException("还没有该课程");
+        }
+        //更新
+        this.lambdaUpdate()
+                .set(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING.getValue())
+                .set(LearningLesson::getWeekFreq, learningPlanDTO.getFreq())
+                .eq(LearningLesson::getId, lesson.getId())
+                .update();
     }
 
     private Map<Long, CourseSimpleInfoDTO> queryCourseSimpleInfoList(List<LearningLesson> records) {
