@@ -1,6 +1,8 @@
 package com.tianji.learning.service.Impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.client.course.CatalogueClient;
@@ -18,11 +20,14 @@ import com.tianji.common.utils.UserContext;
 import com.tianji.learning.domain.dto.LearningPlanDTO;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
+import com.tianji.learning.enums.LessonStatus;
 import com.tianji.learning.enums.PlanStatus;
 import com.tianji.learning.mapper.LearningLessonMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.units.qual.A;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.stereotype.Service;
 
@@ -240,6 +245,46 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .set(LearningLesson::getWeekFreq, learningPlanDTO.getFreq())
                 .eq(LearningLesson::getId, lesson.getId())
                 .update();
+    }
+
+    /**
+     * 查看学习计划进度
+     *
+     * @param pageQuery
+     * @return
+     */
+    @Override
+    public LearningPlanPageVO queryLearningPlanPage(PageQuery pageQuery) {
+        //获取用户id
+        Long userId = UserContext.getUser();
+        /*
+         * TODO 查询本周学习积分
+         * */
+        /*
+         * 查询本周要学习的小结总数
+         * */
+        LambdaQueryWrapper<LearningLesson> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(LearningLesson::getUserId, userId);
+        wrapper.in(LearningLesson::getStatus, LessonStatus.NOT_BEGIN, LessonStatus.LEARNING);
+        wrapper.eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING);
+        wrapper.select(LearningLesson::getWeekFreq);
+        Map<String, Object> map = this.getMap(wrapper);
+        //获取到本周要学的小结总数
+        Integer allWeekFreq = 0;
+        if (map.isEmpty()) {
+            allWeekFreq = Integer.valueOf(map.get("week_freq").toString());
+        }
+        /*
+         * 查询本周已学习的小结数量
+         * */
+
+        /*
+        * 分页查询课表
+        * */
+
+        LearningPlanPageVO learningPlanPageVO = new LearningPlanPageVO();
+        learningPlanPageVO.setWeekTotalPlan(allWeekFreq);
+        return learningPlanPageVO;
     }
 
     private Map<Long, CourseSimpleInfoDTO> queryCourseSimpleInfoList(List<LearningLesson> records) {

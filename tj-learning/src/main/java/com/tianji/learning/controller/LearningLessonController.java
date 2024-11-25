@@ -5,6 +5,7 @@ import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.learning.domain.dto.LearningPlanDTO;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
 import com.tianji.learning.service.ILearningLessonService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -65,14 +66,21 @@ public class LearningLessonController {
     LearningLessonVO queryLessonByCourseId(@ApiParam @PathVariable("courseId") Long courseId) {
         return lessonService.queryLessonByCourseId(courseId);
     }
+
     @GetMapping("/{courseId}/count")
     @ApiOperation("查看课程的学习人数")
     Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId) {
-    return lessonService.countLearningLessonByCourse(courseId);
+        return lessonService.countLearningLessonByCourse(courseId);
     }
-@PostMapping("/plans")
+
+    @PostMapping("plans")
     @ApiOperation("制定学习计划")
     void createLearningPlan(@RequestBody @Validated LearningPlanDTO learningPlanDTO) {
         lessonService.createLearningPlan(learningPlanDTO);
+    }
+    @GetMapping("plans")
+    @ApiOperation("查询学习计划进度表")
+    LearningPlanPageVO queryLearningPlanPage(PageQuery pageQuery) {
+        return lessonService.queryLearningPlanPage(pageQuery);
     }
 }

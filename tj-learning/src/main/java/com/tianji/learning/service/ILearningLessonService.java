@@ -6,6 +6,7 @@ import com.tianji.learning.domain.dto.LearningPlanDTO;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
 
 import java.util.List;
 
@@ -48,7 +49,7 @@ public interface ILearningLessonService extends IService<LearningLesson> {
      * */
     LearningLessonVO queryLessonByCourseId(Long courseId);
 
-    /*
+    /**
      *查询课程学习人数
      * */
     Integer countLearningLessonByCourse(Long courseId);
@@ -58,4 +59,11 @@ public interface ILearningLessonService extends IService<LearningLesson> {
      * @param learningPlanDTO
      */
     void createLearningPlan(LearningPlanDTO learningPlanDTO);
+
+    /**
+     * 查看学习计划进度
+     * @param pageQuery
+     * @return
+     */
+    LearningPlanPageVO queryLearningPlanPage(PageQuery pageQuery);
 }
