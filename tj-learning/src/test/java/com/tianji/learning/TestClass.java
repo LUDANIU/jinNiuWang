@@ -1,8 +1,11 @@
 package com.tianji.learning;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.course.CourseFullInfoDTO;
+import com.tianji.common.domain.query.PageQuery;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.DateUtils;
 import com.tianji.learning.domain.po.LearningLesson;
@@ -34,14 +37,22 @@ public class TestClass {
     private LearningRecordMapper learningRecordMapper;
     @Test
     public void test() {
-        LocalDateTime begin = DateUtils.getWeekBeginTime(LocalDate.now());
-        LocalDateTime end = DateUtils.getWeekEndTime(LocalDate.now());
-        LambdaQueryWrapper<LearningRecord> wrapperLearned = new LambdaQueryWrapper<>();
-        wrapperLearned.eq(LearningRecord::getUserId, 2);
-        wrapperLearned.ge(LearningRecord::getFinishTime, "2022-10-19 10:12:34");
-        wrapperLearned.lt(LearningRecord::getFinishTime, end);
-        wrapperLearned.eq(LearningRecord::getFinished, true);
-        Integer num = learningRecordMapper.selectCount(wrapperLearned);
-        System.out.println(num);
+        QueryWrapper<LearningLesson> wrapperToLearn = new QueryWrapper<>();
+        wrapperToLearn.select("sum(week_freq) as plansTotal");
+        wrapperToLearn.eq("user_id", 2);
+        wrapperToLearn.in("status", LessonStatus.NOT_BEGIN, LessonStatus.LEARNING);
+        wrapperToLearn.eq("plan_status", PlanStatus.PLAN_RUNNING);
+        Map<String, Object> map = learningLessonService.getMap(wrapperToLearn);
+        System.out.println(map);
+    }
+    @Test
+    public void test2() {
+        PageQuery pageQuery = new PageQuery();
+        Page<LearningLesson> page = learningLessonService.lambdaQuery()
+                .eq(LearningLesson::getUserId, 2)
+                .ne(LearningLesson::getStatus, LessonStatus.FINISHED)
+                .eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING)
+                .page(pageQuery.toMpPage("latest_learn_time", false));
+        System.out.println(page.getRecords());
     }
 }

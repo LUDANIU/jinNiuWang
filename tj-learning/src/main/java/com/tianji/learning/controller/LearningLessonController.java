@@ -73,14 +73,14 @@ public class LearningLessonController {
         return lessonService.countLearningLessonByCourse(courseId);
     }
 
-    @PostMapping("plans")
+    @PostMapping("/plans")
     @ApiOperation("制定学习计划")
     void createLearningPlan(@RequestBody @Validated LearningPlanDTO learningPlanDTO) {
         lessonService.createLearningPlan(learningPlanDTO);
     }
-    @GetMapping("plans")
-    @ApiOperation("查询学习计划进度表")
-    LearningPlanPageVO queryLearningPlanPage(PageQuery pageQuery) {
+    @GetMapping("/plans")
+    @ApiOperation("查询学习计划进度")
+    LearningPlanPageVO queryLearningPlanPage( PageQuery pageQuery) {
         return lessonService.queryLearningPlanPage(pageQuery);
     }
 }

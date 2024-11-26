@@ -267,16 +267,16 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         /*
          * 3,查询本周要学习的小结总数
          * */
-        LambdaQueryWrapper<LearningLesson> wrapperToLearn = new LambdaQueryWrapper<>();
-        wrapperToLearn.eq(LearningLesson::getUserId, userId);
-        wrapperToLearn.in(LearningLesson::getStatus, LessonStatus.NOT_BEGIN, LessonStatus.LEARNING);
-        wrapperToLearn.eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING);
-        wrapperToLearn.select(LearningLesson::getWeekFreq);
+        QueryWrapper<LearningLesson> wrapperToLearn = new QueryWrapper<>();
+        wrapperToLearn.eq("user_id", userId);
+        wrapperToLearn.in("status", LessonStatus.NOT_BEGIN, LessonStatus.LEARNING);
+        wrapperToLearn.eq("plan_status", PlanStatus.PLAN_RUNNING);
+        wrapperToLearn.select("sum(week_freq) as planTotal");
         Map<String, Object> map = this.getMap(wrapperToLearn);
         //获取到本周要学的小结总数
         Integer allWeekFreq = 0;
-        if (map.isEmpty()) {
-            allWeekFreq = Integer.valueOf(map.get("week_freq").toString());
+        if (!map.isEmpty()) {
+            allWeekFreq = Integer.valueOf(map.get("planTotal").toString());
         }
         /*
          * 4,查询本周已学习的小结数量
@@ -311,7 +311,6 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .eq(LearningLesson::getUserId, userId)
                 .ne(LearningLesson::getStatus, LessonStatus.FINISHED)
                 .eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING)
-                .lt(LearningLesson::getExpireTime, LocalDateTime.now())
                 .page(pageQuery.toMpPage("latest_learn_time", false));
         if (page.getRecords().isEmpty()) {
             learningPlanPageVO.isEmpty();
@@ -324,7 +323,7 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
          * 8,封装集合数据
          * */
         List<LearningPlanVO> learningPlanVOS = BeanUtils.copyList(page.getRecords(), LearningPlanVO.class);
-        for (LearningPlanVO learningPlanVO : learningPlanVOS) {
+        /*for (LearningPlanVO learningPlanVO : learningPlanVOS) {
             //补充课程信息
             CourseSimpleInfoDTO courseSimpleInfoDTO = courseInfoMap.get(learningPlanVO.getCourseId());
             learningPlanVO.setCourseName(courseSimpleInfoDTO.getName());
@@ -332,12 +331,24 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
             //补充课程本周已学习章节数
             Long num = learnedSectionsMap.get(learningPlanVO.getId());
             learningPlanVO.setWeekLearnedSections(num == null ? 0 : num.intValue());
-        }
+        }*/
+        List<LearningPlanVO> finalVo = learningPlanVOS.stream()
+                .map(vo -> {
+                    //补充课程信息
+                    CourseSimpleInfoDTO courseSimpleInfoDTO = courseInfoMap.get(vo.getCourseId());
+                    vo.setCourseName(courseSimpleInfoDTO.getName());
+                    vo.setSections(courseSimpleInfoDTO.getSectionNum());
+                    //补充课程本周已学习章节数
+                    Long num = learnedSectionsMap.get(vo.getId());
+                    vo.setWeekLearnedSections(num == null ? 0 : num.intValue());
+                    return vo;
+                }).collect(Collectors.toList());
         /*
          *9.封装返回数据
          * */
         learningPlanPageVO.setWeekTotalPlan(allWeekFreq);
         learningPlanPageVO.setWeekFinished(learnedSections);
+        learningPlanPageVO.setList(finalVo);
         return learningPlanPageVO;
     }
 
