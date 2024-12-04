@@ -16,11 +16,14 @@ import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.tianji.learning.service.ILearningRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tianji.learning.utils.LearningRecordDelayTaskHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * <p>
@@ -32,16 +35,14 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper, LearningRecord> implements ILearningRecordService {
-    private final LearningRecordMapper learningRecordMapper;
     private final ILearningLessonService lessonService;
     private final CourseClient courseClient;
+    private final LearningRecordDelayTaskHandler learningRecordDelayTaskHandler;
 
     /**
      * 根据courseId查询学习记录
-     *
-     * @param courseId
-     * @return
      */
     @Override
     public LearningLessonDTO queryLearningRecordByCourse(Long courseId) {
@@ -114,7 +115,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         lessonService.lambdaUpdate()
                 .set(lesson.getLearnedSections() == 0, LearningLesson::getStatus, LessonStatus.LEARNING.getValue())
                 .set(allFinish, LearningLesson::getStatus, LessonStatus.FINISHED.getValue())
-                .set(isFirstFinish, LearningLesson::getLearnedSections, lesson.getLearnedSections()+1)
+                .set(isFirstFinish, LearningLesson::getLearnedSections, lesson.getLearnedSections() + 1)
                 .set(LearningLesson::getLatestSectionId, formDTO.getSectionId())
                 .set(LearningLesson::getLatestLearnTime, formDTO.getCommitTime())
                 .eq(LearningLesson::getId, lesson.getId())
@@ -140,6 +141,20 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         else {
             //不是第一次学习。判断是否是第一次学完
             Boolean isFirstFinish = !record.getFinished() && formDTO.getMoment() >= formDTO.getDuration() * 0.95;
+            /*
+             * 在缓存中查询学习记录
+             * */
+            if (!isFirstFinish) {
+                //先更新缓存中的记录，20秒后判断是否停止学习
+                LearningRecord learningRecord =
+                        this.updateRecordInRedis(formDTO.getLessonId(), formDTO.getSectionId(), formDTO.getMoment());
+                log.info("最新的学习记录:{}", learningRecord);
+                learningRecordDelayTaskHandler.addLearningRecordTask(learningRecord);
+                return false;
+            }
+            /*
+             * 第一次学完，更新数据并删除缓存
+             * */
             Boolean update = this.lambdaUpdate()
                     .set(isFirstFinish, LearningRecord::getFinished, isFirstFinish)
                     .set(isFirstFinish, LearningRecord::getFinishTime, LocalDateTime.now())
@@ -149,8 +164,38 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             if (!update) {
                 throw new BizIllegalException("更新失败");
             }
+            this.learningRecordDelayTaskHandler.cleanRecordCache(formDTO.getLessonId(), formDTO.getSectionId());
             return isFirstFinish;
         }
+    }
+
+    /**
+     * 更新缓存中的学习记录，如果没有则增加一条缓存
+     *
+     * @param lessonId
+     * @param sectionId
+     * @return LearningRecord
+     */
+    private LearningRecord updateRecordInRedis(Long lessonId, Long sectionId, Integer moment) {
+        LearningRecord learningRecord = this.learningRecordDelayTaskHandler
+                .readRecordCache(lessonId, sectionId);
+        if (learningRecord == null) {
+            LearningRecord recordInMysql = this.lambdaQuery()
+                    .eq(LearningRecord::getLessonId, lessonId)
+                    .eq(LearningRecord::getSectionId, sectionId)
+                    .one();
+            recordInMysql.setMoment(moment);
+            this.learningRecordDelayTaskHandler
+                    .writeRecordCache(recordInMysql);
+            return recordInMysql;
+        }
+        learningRecord.setMoment(moment);
+        learningRecord.setLessonId(lessonId);
+        learningRecord.setSectionId(sectionId);
+        this.learningRecordDelayTaskHandler
+                .writeRecordCache(learningRecord);
+        return learningRecord;
+
     }
 
     /**

@@ -323,15 +323,6 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
          * 8,封装集合数据
          * */
         List<LearningPlanVO> learningPlanVOS = BeanUtils.copyList(page.getRecords(), LearningPlanVO.class);
-        /*for (LearningPlanVO learningPlanVO : learningPlanVOS) {
-            //补充课程信息
-            CourseSimpleInfoDTO courseSimpleInfoDTO = courseInfoMap.get(learningPlanVO.getCourseId());
-            learningPlanVO.setCourseName(courseSimpleInfoDTO.getName());
-            learningPlanVO.setSections(courseSimpleInfoDTO.getSectionNum());
-            //补充课程本周已学习章节数
-            Long num = learnedSectionsMap.get(learningPlanVO.getId());
-            learningPlanVO.setWeekLearnedSections(num == null ? 0 : num.intValue());
-        }*/
         List<LearningPlanVO> finalVo = learningPlanVOS.stream()
                 .map(vo -> {
                     //补充课程信息

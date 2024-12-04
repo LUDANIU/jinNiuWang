@@ -16,9 +16,12 @@ import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.tianji.learning.service.Impl.LearningLessonServiceImpl;
 import com.tianji.learning.service.Impl.LearningRecordServiceImpl;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,11 +31,13 @@ import java.util.Map;
  * @author 鲁昊天
  * @date 2024/11/23
  */
+@Slf4j
 @SpringBootTest
 public class TestClass {
     @Autowired
+    private  StringRedisTemplate redisTemplate;
+    @Autowired
     private ILearningLessonService learningLessonService;
-
     @Autowired
     private LearningRecordMapper learningRecordMapper;
     @Test
@@ -54,5 +59,19 @@ public class TestClass {
                 .eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING)
                 .page(pageQuery.toMpPage("latest_learn_time", false));
         System.out.println(page.getRecords());
+    }
+    @Test
+    public void test3() {
+        String test1="test1";
+        try{
+            redisTemplate.opsForHash().put(test1, "1", "private final StringRedisTemplate redisTemplate;2323");
+        }catch (Throwable e){
+            log.error("缓存读取异常", e);
+        }
+        /*try{
+            redisTemplate.opsForHash().put(test1, "1", test1);
+        }catch (Throwable e){
+            log.error("缓存读取异常", e);
+        }*/
     }
 }
