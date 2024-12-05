@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
+
+import com.tianji.learning.enums.QuestionStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -29,7 +31,7 @@ public class InteractionQuestion implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "主键，互动问题的id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     @ApiModelProperty(value = "互动问题的标题")
@@ -63,13 +65,12 @@ public class InteractionQuestion implements Serializable {
     private Boolean hidden;
 
     @ApiModelProperty(value = "管理端问题状态：0-未查看，1-已查看")
-    private Integer status;
+    private QuestionStatus status;
 
     @ApiModelProperty(value = "提问时间")
     private LocalDateTime createTime;
 
     @ApiModelProperty(value = "更新时间")
     private LocalDateTime updateTime;
-
 
 }

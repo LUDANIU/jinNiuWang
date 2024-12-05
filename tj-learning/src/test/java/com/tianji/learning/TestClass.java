@@ -1,30 +1,22 @@
 package com.tianji.learning;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.tianji.api.client.course.CourseClient;
-import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.common.domain.query.PageQuery;
-import com.tianji.common.utils.BeanUtils;
-import com.tianji.common.utils.DateUtils;
+import com.tianji.learning.domain.po.InteractionQuestion;
 import com.tianji.learning.domain.po.LearningLesson;
-import com.tianji.learning.domain.po.LearningRecord;
 import com.tianji.learning.enums.LessonStatus;
 import com.tianji.learning.enums.PlanStatus;
 import com.tianji.learning.mapper.LearningRecordMapper;
+import com.tianji.learning.service.IInteractionQuestionService;
+import com.tianji.learning.service.IInteractionReplyService;
 import com.tianji.learning.service.ILearningLessonService;
-import com.tianji.learning.service.Impl.LearningLessonServiceImpl;
-import com.tianji.learning.service.Impl.LearningRecordServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -40,6 +32,10 @@ public class TestClass {
     private ILearningLessonService learningLessonService;
     @Autowired
     private LearningRecordMapper learningRecordMapper;
+    @Autowired
+    private IInteractionReplyService replyService;
+    @Autowired
+    private IInteractionQuestionService questionService;
     @Test
     public void test() {
         QueryWrapper<LearningLesson> wrapperToLearn = new QueryWrapper<>();
@@ -62,16 +58,10 @@ public class TestClass {
     }
     @Test
     public void test3() {
-        String test1="test1";
-        try{
-            redisTemplate.opsForHash().put(test1, "1", "private final StringRedisTemplate redisTemplate;2323");
-        }catch (Throwable e){
-            log.error("缓存读取异常", e);
-        }
-        /*try{
-            redisTemplate.opsForHash().put(test1, "1", test1);
-        }catch (Throwable e){
-            log.error("缓存读取异常", e);
-        }*/
+        Page<InteractionQuestion> page = questionService.lambdaQuery()
+                .select(InteractionQuestion.class,
+                        q -> !q.getProperty().equals("description"))
+                .page(new Page<>(1, 5));
+        System.out.println(page.getRecords().toString());
     }
 }
