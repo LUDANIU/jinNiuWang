@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.DelayQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 
 @Slf4j
 @Component
@@ -32,7 +33,11 @@ public class LearningRecordDelayTaskHandler {
     private final DelayQueue<DelayTask<RecordTaskData>> queue = new DelayQueue<>();
     private final static String RECORD_KEY_TEMPLATE = "learning:record:{}";
     private static volatile boolean begin = true;
-
+static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
+        2,
+        60,
+        java.util.concurrent.TimeUnit.SECONDS,
+        new java.util.concurrent.LinkedBlockingQueue<Runnable>(1000));
     @PostConstruct
     public void init(){
         CompletableFuture.runAsync(this::handleDelayTask);
@@ -48,30 +53,37 @@ public class LearningRecordDelayTaskHandler {
             try {
                 // 1.获取到期的延迟任务
                 DelayTask<RecordTaskData> task = queue.take();
-                log.info("延时队列收到的消息的对象是：{}", task.getData());
-                RecordTaskData data = task.getData();
-                // 2.查询Redis缓存
-                LearningRecord record = readRecordCache(data.getLessonId(), data.getSectionId());
-                log.info("缓存中的学习时长是:{},最新的学习时长是:{}",record.getMoment(),data.getMoment());
-                if (record == null) {
-                    continue;
-                }
-                // 3.比较数据，moment值
-                if(!Objects.equals(data.getMoment(), record.getMoment())) {
-                    // 不一致，说明用户还在持续提交播放进度，放弃旧数据
-                    continue;
-                }
+                poolExecutor.submit(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                log.info("延时队列收到的消息的对象是：{}", task.getData());
+                                RecordTaskData data = task.getData();
+                                // 2.查询Redis缓存
+                                LearningRecord record = readRecordCache(data.getLessonId(), data.getSectionId());
+                                log.info("缓存中的学习时长是:{},最新的学习时长是:{}",record.getMoment(),data.getMoment());
+                                if (record == null) {
+                                    return;
+                                }
+                                // 3.比较数据，moment值
+                                if(!Objects.equals(data.getMoment(), record.getMoment())) {
+                                    // 不一致，说明用户还在持续提交播放进度，放弃旧数据
+                                    return;
+                                }
 
-                // 4.一致，持久化播放进度数据到数据库
-                // 4.1.更新学习记录的moment
-                record.setFinished(null);
-                recordMapper.updateById(record);
-                // 4.2.更新课表最近学习信息
-                LearningLesson lesson = new LearningLesson();
-                lesson.setId(data.getLessonId());
-                lesson.setLatestSectionId(data.getSectionId());
-                lesson.setLatestLearnTime(LocalDateTime.now());
-                lessonService.updateById(lesson);
+                                // 4.一致，持久化播放进度数据到数据库
+                                // 4.1.更新学习记录的moment
+                                record.setFinished(null);
+                                recordMapper.updateById(record);
+                                // 4.2.更新课表最近学习信息
+                                LearningLesson lesson = new LearningLesson();
+                                lesson.setId(data.getLessonId());
+                                lesson.setLatestSectionId(data.getSectionId());
+                                lesson.setLatestLearnTime(LocalDateTime.now());
+                                lessonService.updateById(lesson);
+                            }
+                        }
+                );
             } catch (Exception e) {
                 log.error("处理延迟任务发生异常", e);
             }
