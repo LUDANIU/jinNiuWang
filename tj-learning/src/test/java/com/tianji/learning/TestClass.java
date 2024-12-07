@@ -2,20 +2,18 @@ package com.tianji.learning;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.client.remark.RemarkClient;
 import com.tianji.common.domain.query.PageQuery;
 import com.tianji.learning.domain.po.InteractionQuestion;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.tianji.learning.enums.LessonStatus;
 import com.tianji.learning.enums.PlanStatus;
-import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.IInteractionQuestionService;
-import com.tianji.learning.service.IInteractionReplyService;
 import com.tianji.learning.service.ILearningLessonService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Map;
 
@@ -27,13 +25,9 @@ import java.util.Map;
 @SpringBootTest
 public class TestClass {
     @Autowired
-    private  StringRedisTemplate redisTemplate;
+    private RemarkClient remarkClient;
     @Autowired
     private ILearningLessonService learningLessonService;
-    @Autowired
-    private LearningRecordMapper learningRecordMapper;
-    @Autowired
-    private IInteractionReplyService replyService;
     @Autowired
     private IInteractionQuestionService questionService;
     @Test
@@ -63,5 +57,9 @@ public class TestClass {
                         q -> !q.getProperty().equals("description"))
                 .page(new Page<>(1, 5));
         System.out.println(page.getRecords().toString());
+    }
+    @Test
+    public void test4() {
+        System.out.println(remarkClient.isBizLiked(null));
     }
 }

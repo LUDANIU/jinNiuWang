@@ -3,6 +3,7 @@ package com.tianji.remark.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
+import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.StringUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.remark.domain.dto.LikeRecordFormDTO;
@@ -14,6 +15,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,11 +66,12 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
 
     /**
      *
-     * @param bizIds
-     * @return
      */
     @Override
     public Set<Long> isBizLiked(List<Long> bizIds) {
+        if(CollUtils.isEmpty(bizIds)){
+            return new HashSet<>();
+        }
         List<LikedRecord> reocord=this.lambdaQuery()
                 .in(LikedRecord::getBizId,bizIds)
                 .eq(LikedRecord::getUserId,UserContext.getUser())
