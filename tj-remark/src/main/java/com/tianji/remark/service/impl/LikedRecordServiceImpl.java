@@ -1,11 +1,11 @@
 package com.tianji.remark.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
+import com.tianji.common.constants.MqConstants;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.StringUtils;
 import com.tianji.common.utils.UserContext;
+import com.tianji.remark.constants.RedisConstants;
 import com.tianji.remark.domain.dto.LikeRecordFormDTO;
 import com.tianji.remark.domain.dto.LikedTimesDTO;
 import com.tianji.remark.domain.po.LikedRecord;
@@ -13,15 +13,15 @@ import com.tianji.remark.mapper.LikedRecordMapper;
 import com.tianji.remark.service.ILikedRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.tianji.common.constants.MqConstants.Exchange.LIKE_RECORD_EXCHANGE;
-import static com.tianji.common.constants.MqConstants.Key.LIKED_TIMES_KEY_TEMPLATE;
 
 /**
  * <p>
@@ -35,9 +35,10 @@ import static com.tianji.common.constants.MqConstants.Key.LIKED_TIMES_KEY_TEMPLA
 @RequiredArgsConstructor
 public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, LikedRecord> implements ILikedRecordService {
     private final RabbitMqHelper rabbitMqHelper;
+    private final StringRedisTemplate redisTemplate;
+
     /**
      * 点赞或取消赞
-     *
      */
     @Override
     public void likeOrCancel(LikeRecordFormDTO recordDTO) {
@@ -47,21 +48,32 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
         boolean success = recordDTO.getLiked() ?
                 like(userId, recordDTO) : cancelLike(userId, recordDTO);
         //计算点赞次数
-        Integer count = this.lambdaQuery()
+        /*Integer count = this.lambdaQuery()
                 .eq(LikedRecord::getBizId, recordDTO.getBizId())
                 .eq(LikedRecord::getBizType, recordDTO.getBizType())
-                .count();
+                .count();*/
         //构造消息对象
-        LikedTimesDTO msg=LikedTimesDTO.builder()
+        /*LikedTimesDTO msg=LikedTimesDTO.builder()
                 .bizId(recordDTO.getBizId())
                 .likedTimes(count)
-                .build();
-        if (success) {
-            //更新点赞数
-            rabbitMqHelper.sendAsync(LIKE_RECORD_EXCHANGE,
-                    StringUtils.format(LIKED_TIMES_KEY_TEMPLATE, recordDTO.getBizType()),
-                    msg);
+                .build();*/
+        // 2.判断是否执行成功，如果失败，则直接结束
+        if (!success) {
+            return;
         }
+        // 3.如果执行成功，统计点赞总数
+        Long likedTimes = redisTemplate.opsForSet()
+                .size(RedisConstants.LIKE_BIZ_KEY_PREFIX + recordDTO.getBizId());
+        if (likedTimes == null) {
+            return;
+        }
+        // 4.缓存点总数到Redis
+        redisTemplate.opsForZSet().add(
+                RedisConstants.LIKE_COUNT_KEY_PREFIX + recordDTO.getBizType(),
+                recordDTO.getBizId().toString(),
+                likedTimes
+        );
+
     }
 
     /**
@@ -69,42 +81,77 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
      */
     @Override
     public Set<Long> isBizLiked(List<Long> bizIds) {
-        if(CollUtils.isEmpty(bizIds)){
+        if (CollUtils.isEmpty(bizIds)) {
             return new HashSet<>();
         }
-        List<LikedRecord> reocord=this.lambdaQuery()
-                .in(LikedRecord::getBizId,bizIds)
-                .eq(LikedRecord::getUserId,UserContext.getUser())
+        List<LikedRecord> reocord = this.lambdaQuery()
+                .in(LikedRecord::getBizId, bizIds)
+                .eq(LikedRecord::getUserId, UserContext.getUser())
                 .list();
         return reocord.stream().map(
                 LikedRecord::getBizId
         ).collect(Collectors.toSet());
     }
 
+    /*
+     *定时发送更新点赞数的消息队列
+     * */
+    @Override
+    public void handleLikedTimes(String bizType, int maxBizSize) {
+        List<LikedTimesDTO> list = new ArrayList<>();
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet()
+                .popMax(RedisConstants.LIKE_COUNT_KEY_PREFIX+ bizType, maxBizSize);
+        if (typedTuples == null) {
+            return;
+        }
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+            if(tuple==null||tuple.getValue()==null||tuple.getValue().isEmpty()){
+                continue;
+            }
+            list.add(LikedTimesDTO.builder()
+                    .likedTimes(tuple.getScore().intValue())
+                    .bizId(Long.valueOf(tuple.getValue()))
+                    .build());
+        }
+        if(CollUtils.isEmpty(list)){
+            return;
+        }
+        String routingKey = StringUtils.format(MqConstants.Key.LIKED_TIMES_KEY_TEMPLATE, bizType);
+        rabbitMqHelper.send(MqConstants.Exchange.LIKE_RECORD_EXCHANGE, routingKey, list);
+    }
+
     private boolean cancelLike(Long userId, LikeRecordFormDTO recordDTO) {
-        return this.remove(new QueryWrapper<LikedRecord>().lambda()
+        /*return this.remove(new QueryWrapper<LikedRecord>().lambda()
                 .eq(LikedRecord::getUserId, UserContext.getUser())
-                .eq(LikedRecord::getBizId, recordDTO.getBizId()));
+                .eq(LikedRecord::getBizId, recordDTO.getBizId()));*/
+        //改进的点赞记录删除方法
+        Long remove = redisTemplate.opsForSet()
+                .remove(RedisConstants.LIKE_BIZ_KEY_PREFIX + recordDTO.getBizId(), userId);
+        return remove != null && remove > 0;
     }
 
     private boolean like(Long userId, LikeRecordFormDTO recordDTO) {
         /*
          *查询是否有点赞记录
          * */
-        LikedRecord record = this.getOne(new LambdaQueryWrapper<LikedRecord>()
+       /* LikedRecord record = this.getOne(new LambdaQueryWrapper<LikedRecord>()
                 .eq(LikedRecord::getUserId, userId)
                 .eq(LikedRecord::getBizId, recordDTO.getBizId()));
         if(record!=null){
             return false;
-        }
+        }*/
         /*
-        * 新增点赞记录
-        * */
-        LikedRecord newRecord = LikedRecord.builder()
+         * 新增点赞记录
+         * */
+        /*LikedRecord newRecord = LikedRecord.builder()
                 .userId(userId)
                 .bizId(recordDTO.getBizId())
                 .bizType(recordDTO.getBizType())
                 .build();
-        return this.save(newRecord);
+        return this.save(newRecord);*/
+        //改进的新增点赞记录
+        String key = RedisConstants.LIKE_BIZ_KEY_PREFIX + recordDTO.getBizId();
+        Long add = redisTemplate.opsForSet().add(key, String.valueOf(userId));
+        return add != null && add > 0;
     }
 }
