@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -70,7 +71,8 @@ public class TestClass {
     }
     @Test
     public void test5() {
-      System.out.println(  redisTemplate.opsForValue().setBit("bm", 2, true));
-        System.out.println(redisTemplate.opsForValue().get("bm"));
+        int dayOfMonth = LocalDate.now().getDayOfMonth();
+        System.out.println("Current day of the month: " + dayOfMonth);
+
     }
 }
