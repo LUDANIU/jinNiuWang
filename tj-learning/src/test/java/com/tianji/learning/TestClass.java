@@ -13,7 +13,9 @@ import com.tianji.learning.service.ILearningLessonService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Map;
 
@@ -30,6 +32,10 @@ public class TestClass {
     private ILearningLessonService learningLessonService;
     @Autowired
     private IInteractionQuestionService questionService;
+    @Qualifier("redisTemplate")
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @Test
     public void test() {
         QueryWrapper<LearningLesson> wrapperToLearn = new QueryWrapper<>();
@@ -61,5 +67,10 @@ public class TestClass {
     @Test
     public void test4() {
         System.out.println(remarkClient.isBizLiked(null));
+    }
+    @Test
+    public void test5() {
+      System.out.println(  redisTemplate.opsForValue().setBit("bm", 2, true));
+        System.out.println(redisTemplate.opsForValue().get("bm"));
     }
 }

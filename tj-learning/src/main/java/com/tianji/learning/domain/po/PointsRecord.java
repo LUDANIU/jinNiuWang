@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.time.LocalDateTime;
 import java.io.Serializable;
+
+import com.tianji.learning.enums.PointsRecordType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -35,8 +37,8 @@ public class PointsRecord implements Serializable {
     @ApiModelProperty(value = "用户id")
     private Long userId;
 
-    @ApiModelProperty(value = "积分方式：1-课程学习，2-每日签到，3-课程问答， 4-课程笔记，5-课程评价")
-    private Integer type;
+    @ApiModelProperty
+    private PointsRecordType type;
 
     @ApiModelProperty(value = "积分值")
     private Integer points;
