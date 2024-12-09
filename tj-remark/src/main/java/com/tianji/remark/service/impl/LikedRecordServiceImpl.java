@@ -102,7 +102,6 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
             }
             return null;
         });
-        redisTemplate.executePipelined;
         return set;
 /*        Long userId = UserContext.getUser();
         List<Object> objects = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
