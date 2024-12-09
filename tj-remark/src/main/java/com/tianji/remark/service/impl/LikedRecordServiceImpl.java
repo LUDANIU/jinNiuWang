@@ -13,6 +13,7 @@ import com.tianji.remark.mapper.LikedRecordMapper;
 import com.tianji.remark.service.ILikedRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -81,7 +81,7 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
      */
     @Override
     public Set<Long> isBizLiked(List<Long> bizIds) {
-        if (CollUtils.isEmpty(bizIds)) {
+       /* if (CollUtils.isEmpty(bizIds)) {
             return new HashSet<>();
         }
         List<LikedRecord> reocord = this.lambdaQuery()
@@ -90,7 +90,33 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
                 .list();
         return reocord.stream().map(
                 LikedRecord::getBizId
-        ).collect(Collectors.toSet());
+        ).collect(Collectors.toSet());*/
+        Set<Long> set=new HashSet<>();
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for(Long bizId : bizIds){
+                Boolean isMember=redisTemplate.opsForSet().isMember(RedisConstants.LIKE_BIZ_KEY_PREFIX + bizId,
+                        UserContext.getUser().toString());
+                if(isMember){
+                    set.add(bizId);
+                }
+            }
+            return null;
+        });
+        redisTemplate.executePipelined;
+        return set;
+/*        Long userId = UserContext.getUser();
+        List<Object> objects = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            StringRedisConnection src = (StringRedisConnection) connection;
+            for (Long bizId : bizIds) {
+                String key = RedisConstants.LIKE_BIZ_KEY_PREFIX + bizId;
+                src.sIsMember(key, userId.toString());
+            }
+            return null;
+        });
+        return IntStream.range(0, objects.size())
+                .filter(i -> (boolean) objects.get(i))
+                .mapToObj(bizIds::get)
+                .collect(Collectors.toSet());*/
     }
 
     /*
@@ -100,12 +126,12 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
     public void handleLikedTimes(String bizType, int maxBizSize) {
         List<LikedTimesDTO> list = new ArrayList<>();
         Set<ZSetOperations.TypedTuple<String>> typedTuples = redisTemplate.opsForZSet()
-                .popMax(RedisConstants.LIKE_COUNT_KEY_PREFIX+ bizType, maxBizSize);
+                .popMax(RedisConstants.LIKE_COUNT_KEY_PREFIX + bizType, maxBizSize);
         if (typedTuples == null) {
             return;
         }
         for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
-            if(tuple==null||tuple.getValue()==null||tuple.getValue().isEmpty()){
+            if (tuple == null || tuple.getValue() == null || tuple.getScore() == null || tuple.getValue().isEmpty()) {
                 continue;
             }
             list.add(LikedTimesDTO.builder()
@@ -113,7 +139,7 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
                     .bizId(Long.valueOf(tuple.getValue()))
                     .build());
         }
-        if(CollUtils.isEmpty(list)){
+        if (CollUtils.isEmpty(list)) {
             return;
         }
         String routingKey = StringUtils.format(MqConstants.Key.LIKED_TIMES_KEY_TEMPLATE, bizType);
