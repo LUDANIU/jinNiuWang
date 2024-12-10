@@ -8,7 +8,12 @@ import com.tianji.learning.domain.vo.SignResultVO;
  */
 public interface ISignRecordService {
     /*
-    * 用户登录
-    * */
+     * 用户登录
+     * */
     SignResultVO sign();
+
+    /*
+     *查询本月签到记录
+     * */
+    Byte[] getMonthSignRecords();
 }

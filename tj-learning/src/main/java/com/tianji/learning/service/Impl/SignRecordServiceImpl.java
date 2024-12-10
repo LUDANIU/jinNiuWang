@@ -1,5 +1,6 @@
 package com.tianji.learning.service.Impl;
 
+import com.tianji.common.utils.DateUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.constants.RedisConstants;
 import com.tianji.learning.domain.vo.SignResultVO;
@@ -9,7 +10,6 @@ import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,8 +28,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //获取登录用户
         Long user = UserContext.getUser();
         //拼接用户签到的key
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
-        String mounth = sdf.format(LocalDate.now());
+        String mounth = LocalDate.now().format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
         String key = RedisConstants.SIGN_RECORD_KEY_PREFIX
                 + user + mounth;
         /*
@@ -63,6 +62,34 @@ public class SignRecordServiceImpl implements ISignRecordService {
         return result;
     }
 
+    @Override
+    public Byte[] getMonthSignRecords() {
+        Byte[] bytes = new Byte[LocalDate.now().getDayOfMonth()];
+        //获取登录用户
+        Long user = UserContext.getUser();
+        //拼接用户签到的key
+        String key = RedisConstants.SIGN_RECORD_KEY_PREFIX+ user+ LocalDate.now().format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
+        //查询签到记录
+        List<Long> list=redisTemplate.opsForValue()
+                .bitField(key,BitFieldSubCommands.create()
+                .get(BitFieldSubCommands.BitFieldType.unsigned(LocalDate.now().getDayOfMonth())).valueAt(0));
+        Long sign = list.get(0);
+        if(sign==null){
+            return new Byte[0];
+        }
+        int dayNumber=LocalDate.now().getDayOfMonth();
+        while (dayNumber>0){
+            if((sign&1)==1){
+             bytes[dayNumber-1]=1;
+            }else{
+                bytes[dayNumber-1]=0;
+            }
+            sign>>>=1;
+            dayNumber--;
+        }
+        return bytes;
+    }
+
     /*
      * 计算连续签到天数
      * */
@@ -74,7 +101,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
                         BitFieldSubCommands.create()
                                 .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0)
                 );
-        Integer sign = list.get(0).intValue();
+        int sign = list.get(0).intValue();
         while ((sign & 1) == 1) {
             count++;
             sign>>>=1;
