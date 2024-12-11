@@ -27,9 +27,10 @@ import java.util.List;
 @Api(tags = "积分相关接口")
 public class PointsRecordController {
     private final IPointsRecordService pointsRecordService;
-@ApiOperation("用户查询今日积分详情")
-@GetMapping("today")
-public List<PointsStatisticsVO> queryMyPointsToday(){
-    return pointsRecordService.queryMyPointsToday();
-}
+
+    @ApiOperation("用户查询今日积分详情")
+    @GetMapping("today")
+    public List<PointsStatisticsVO> queryMyPointsToday() {
+        return pointsRecordService.queryMyPointsToday();
+    }
 }

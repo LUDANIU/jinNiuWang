@@ -1,6 +1,8 @@
 package com.tianji.learning.service.Impl;
 
 import com.tianji.learning.domain.po.PointsBoard;
+import com.tianji.learning.domain.query.PointsBoardQuery;
+import com.tianji.learning.domain.vo.PointsBoardVO;
 import com.tianji.learning.mapper.PointsBoardMapper;
 import com.tianji.learning.service.IPointsBoardService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -17,4 +19,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class PointsBoardServiceImpl extends ServiceImpl<PointsBoardMapper, PointsBoard> implements IPointsBoardService {
 
+    @Override
+    public PointsBoardVO queryPointsBoard(PointsBoardQuery query) {
+
+        return null;
+    }
 }

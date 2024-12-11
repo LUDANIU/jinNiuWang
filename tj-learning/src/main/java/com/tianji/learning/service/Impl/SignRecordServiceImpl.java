@@ -46,7 +46,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         );
         if (Boolean.TRUE.equals(wasSign)) {
             //如果签到成功，则返回签到结果
-            throw new RuntimeException("重复签到");
+            throw  new RuntimeException("重复签到");
         }
         /*
          * 计算连续签到天数
