@@ -1,12 +1,23 @@
 package com.tianji.learning.service.Impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
+import com.tianji.common.utils.CollUtils;
+import com.tianji.common.utils.DateUtils;
+import com.tianji.common.utils.UserContext;
 import com.tianji.learning.domain.po.PointsRecord;
+import com.tianji.learning.domain.vo.PointsStatisticsVO;
 import com.tianji.learning.enums.PointsRecordType;
 import com.tianji.learning.mapper.PointsRecordMapper;
 import com.tianji.learning.mq.message.SignInMessage;
 import com.tianji.learning.service.IPointsRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>
@@ -26,5 +37,37 @@ public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, Poi
         record.setUserId(message.getUserId());
         record.setPoints(message.getPoints());
         this.save(record);
+    }
+
+    /*
+     *查询今日积分情况
+     * */
+    @Override
+    public List<PointsStatisticsVO> queryMyPointsToday() {
+        //获取用户id
+        Long userId = UserContext.getUser();
+        //构造查询条件
+        QueryWrapper<PointsRecord> wrapper
+                = new QueryWrapper<>();
+        LocalDateTime start= DateUtils.getDayStartTime(LocalDateTime.now());
+        LocalDateTime end= DateUtils.getDayEndTime(LocalDateTime.now());
+        wrapper.eq("user_id", userId);
+        wrapper.between("create_time", start, end);
+        wrapper.groupBy("type");
+        wrapper.select("type","sum(points) as user_id");
+        List<PointsRecord> list = this.list(wrapper);
+        //分类把积分封装
+        if(CollUtils.isEmpty(list)){
+            return CollUtils.emptyList();
+        }
+        List<PointsStatisticsVO> vos=new ArrayList<>();
+        for(PointsRecord p:list){
+            PointsStatisticsVO vo=new PointsStatisticsVO();
+            vo.setType(p.getType().getDesc());
+            vo.setPoints(p.getUserId().intValue());
+            vo.setMaxPoints(p.getType().getMaxPoints());
+            vos.add(vo);
+        }
+        return vos;
     }
 }
