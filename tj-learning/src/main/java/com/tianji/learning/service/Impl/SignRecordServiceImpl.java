@@ -1,5 +1,6 @@
 package com.tianji.learning.service.Impl;
 
+import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.DateUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.constants.RedisConstants;
@@ -73,10 +74,10 @@ public class SignRecordServiceImpl implements ISignRecordService {
         List<Long> list=redisTemplate.opsForValue()
                 .bitField(key,BitFieldSubCommands.create()
                 .get(BitFieldSubCommands.BitFieldType.unsigned(LocalDate.now().getDayOfMonth())).valueAt(0));
-        Long sign = list.get(0);
-        if(sign==null){
+        if (CollUtils.isEmpty(list)) {
             return new Byte[0];
         }
+        int sign = list.get(0).intValue();
         int dayNumber=LocalDate.now().getDayOfMonth();
         while (dayNumber>0){
             if((sign&1)==1){
@@ -101,6 +102,9 @@ public class SignRecordServiceImpl implements ISignRecordService {
                         BitFieldSubCommands.create()
                                 .get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0)
                 );
+        if(list==null){
+            return 0;
+        }
         int sign = list.get(0).intValue();
         while ((sign & 1) == 1) {
             count++;
