@@ -2,6 +2,7 @@ package com.tianji.learning.service;
 
 import com.tianji.learning.domain.po.PointsRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tianji.learning.mq.message.SignInMessage;
 
 /**
  * <p>
@@ -12,5 +13,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2024-12-09
  */
 public interface IPointsRecordService extends IService<PointsRecord> {
-
+    /*
+     *添加签到积分
+     * */
+    void insertSignPoints(SignInMessage message);
 }

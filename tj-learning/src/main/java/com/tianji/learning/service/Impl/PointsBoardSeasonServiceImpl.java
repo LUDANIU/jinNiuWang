@@ -1,4 +1,4 @@
-package com.tianji.learning.service.impl;
+package com.tianji.learning.service.Impl;
 
 import com.tianji.learning.domain.po.PointsBoardSeason;
 import com.tianji.learning.mapper.PointsBoardSeasonMapper;

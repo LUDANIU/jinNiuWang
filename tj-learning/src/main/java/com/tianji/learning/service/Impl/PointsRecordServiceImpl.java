@@ -1,7 +1,8 @@
-package com.tianji.learning.service.impl;
+package com.tianji.learning.service.Impl;
 
 import com.tianji.learning.domain.po.PointsRecord;
 import com.tianji.learning.mapper.PointsRecordMapper;
+import com.tianji.learning.mq.message.SignInMessage;
 import com.tianji.learning.service.IPointsRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
@@ -17,4 +18,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, PointsRecord> implements IPointsRecordService {
 
+    @Override
+    public void insertSignPoints(SignInMessage message) {
+
+    }
 }
