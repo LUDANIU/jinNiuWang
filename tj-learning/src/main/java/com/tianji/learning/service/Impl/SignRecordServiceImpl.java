@@ -33,9 +33,9 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //获取登录用户
         Long user = UserContext.getUser();
         //拼接用户签到的key
-        String mounth = LocalDate.now().format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
+        LocalDate now = LocalDate.now();
         String key = RedisConstants.SIGN_RECORD_KEY_PREFIX
-                + user + mounth;
+                + user + now.format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
         /*
          * 添加签到记录
          * */
@@ -54,6 +54,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         Integer count = this.countSignDays(key, LocalDate.now().getDayOfMonth());
         SignResultVO result = new SignResultVO();
         result.setSignDays(count);
+        result.setRewardPoints(0);
         /*
          * 根据连续签到天数进行奖励
          * */
@@ -68,7 +69,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //发送消息，签到积分
         mqHelper.send(MqConstants.Exchange.LEARNING_EXCHANGE,
                 MqConstants.Key.SIGN_IN,
-                SignInMessage.of(user, result.totalPoints()+1));
+                SignInMessage.of(user, result.getRewardPoints()+1));
         return result;
     }
 
@@ -78,7 +79,8 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //获取登录用户
         Long user = UserContext.getUser();
         //拼接用户签到的key
-        String key = RedisConstants.SIGN_RECORD_KEY_PREFIX + user + LocalDate.now().format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
+        LocalDate now = LocalDate.now();
+        String key = RedisConstants.SIGN_RECORD_KEY_PREFIX + user + now.format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
         //查询签到记录
         List<Long> list = redisTemplate.opsForValue()
                 .bitField(key, BitFieldSubCommands.create()

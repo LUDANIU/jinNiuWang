@@ -5,5 +5,5 @@ package com.tianji.learning.constants;
  * @date 2024/12/9
  */
 public interface RedisConstants {
-    String SIGN_RECORD_KEY_PREFIX = "sign:record:";
+    String SIGN_RECORD_KEY_PREFIX = "sign:uid:";
 }

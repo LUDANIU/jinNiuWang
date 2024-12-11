@@ -1,6 +1,7 @@
 package com.tianji.learning.service.Impl;
 
 import com.tianji.learning.domain.po.PointsRecord;
+import com.tianji.learning.enums.PointsRecordType;
 import com.tianji.learning.mapper.PointsRecordMapper;
 import com.tianji.learning.mq.message.SignInMessage;
 import com.tianji.learning.service.IPointsRecordService;
@@ -20,6 +21,10 @@ public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, Poi
 
     @Override
     public void insertSignPoints(SignInMessage message) {
-
+        PointsRecord record = new PointsRecord();
+        record.setType(PointsRecordType.SIGN);
+        record.setUserId(message.getUserId());
+        record.setPoints(message.getPoints());
+        this.save(record);
     }
 }
