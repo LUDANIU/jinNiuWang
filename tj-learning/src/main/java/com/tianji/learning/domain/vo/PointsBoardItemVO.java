@@ -2,9 +2,11 @@ package com.tianji.learning.domain.vo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 @ApiModel(description = "积分榜单信息")
 public class PointsBoardItemVO {
     @ApiModelProperty("积分值")
