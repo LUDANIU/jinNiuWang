@@ -25,4 +25,8 @@ public interface IPointsRecordService extends IService<PointsRecord> {
      *查询今日积分情况
      * */
     List<PointsStatisticsVO> queryMyPointsToday();
+/*
+     *创建积分排行榜表
+ */
+    void createPointsBoardTableBySeason(String tableName);
 }

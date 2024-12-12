@@ -8,6 +8,7 @@ import com.tianji.learning.constants.RedisConstants;
 import com.tianji.learning.domain.po.PointsRecord;
 import com.tianji.learning.domain.vo.PointsStatisticsVO;
 import com.tianji.learning.enums.PointsRecordType;
+import com.tianji.learning.mapper.PointsBoardMapper;
 import com.tianji.learning.mapper.PointsRecordMapper;
 import com.tianji.learning.mq.message.SignInMessage;
 import com.tianji.learning.service.IPointsRecordService;
@@ -32,7 +33,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, PointsRecord> implements IPointsRecordService {
-private final StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
+    private final PointsBoardMapper pointsBoardMapper;
+
     @Override
     public void insertSignPoints(SignInMessage message) {
         PointsRecord record = new PointsRecord();
@@ -57,25 +60,30 @@ private final StringRedisTemplate redisTemplate;
         //构造查询条件
         QueryWrapper<PointsRecord> wrapper
                 = new QueryWrapper<>();
-        LocalDateTime start= DateUtils.getDayStartTime(LocalDateTime.now());
-        LocalDateTime end= DateUtils.getDayEndTime(LocalDateTime.now());
+        LocalDateTime start = DateUtils.getDayStartTime(LocalDateTime.now());
+        LocalDateTime end = DateUtils.getDayEndTime(LocalDateTime.now());
         wrapper.eq("user_id", userId);
         wrapper.between("create_time", start, end);
         wrapper.groupBy("type");
-        wrapper.select("type","sum(points) as user_id");
+        wrapper.select("type", "sum(points) as user_id");
         List<PointsRecord> list = this.list(wrapper);
         //分类把积分封装
-        if(CollUtils.isEmpty(list)){
+        if (CollUtils.isEmpty(list)) {
             return CollUtils.emptyList();
         }
-        List<PointsStatisticsVO> vos=new ArrayList<>();
-        for(PointsRecord p:list){
-            PointsStatisticsVO vo=new PointsStatisticsVO();
+        List<PointsStatisticsVO> vos = new ArrayList<>();
+        for (PointsRecord p : list) {
+            PointsStatisticsVO vo = new PointsStatisticsVO();
             vo.setType(p.getType().getDesc());
             vo.setPoints(p.getUserId().intValue());
             vo.setMaxPoints(p.getType().getMaxPoints());
             vos.add(vo);
         }
         return vos;
+    }
+
+    @Override
+    public void createPointsBoardTableBySeason(String tableName) {
+        pointsBoardMapper.createPointsBoardTable(tableName);
     }
 }

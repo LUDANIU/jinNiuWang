@@ -69,7 +69,7 @@ public class PointsBoardServiceImpl extends ServiceImpl<PointsBoardMapper, Point
         if (typedTuples == null) {
             return list;
         }
-        Integer rank = 1;
+        int rank = 1;
         for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
             if (tuple == null || tuple.getValue() == null || tuple.getScore() == null || tuple.getValue().isEmpty()) {
                 continue;
