@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
+
+import com.tianji.promotion.enums.ExchangeCodeStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -29,14 +31,14 @@ public class ExchangeCode implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "兑换码id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Integer id;
 
     @ApiModelProperty(value = "兑换码")
     private String code;
 
     @ApiModelProperty(value = "兑换码状态， 1：待兑换，2：已兑换，3：兑换活动已结束")
-    private Integer status;
+    private ExchangeCodeStatus status;
 
     @ApiModelProperty(value = "兑换人")
     private Long userId;
