@@ -12,11 +12,15 @@ import com.tianji.promotion.domain.po.CouponScope;
 import com.tianji.promotion.domain.query.CouponQuery;
 import com.tianji.promotion.domain.vo.CouponPageVO;
 import com.tianji.promotion.enums.CouponStatus;
+import com.tianji.promotion.enums.ObtainType;
 import com.tianji.promotion.mapper.CouponMapper;
 import com.tianji.promotion.service.ICouponScopeService;
 import com.tianji.promotion.service.ICouponService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tianji.promotion.service.IExchangeCodeService;
+import com.tianji.promotion.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +40,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> implements ICouponService {
     private final ICouponScopeService couponScopeService;
+    private final IExchangeCodeService exchangeCodeService;
 
     /*
      *新增优惠卷
@@ -79,18 +84,20 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         return page;
     }
 
+
     /*
      *发放优惠卷
      * */
+    @Transactional
     @Override
     public void issueCoupon(Long id, CouponIssueFormDTO dto) {
-        if (id==null) {
+        if (id == null) {
             throw new BizIllegalException("优惠卷id不能为空");
         }
         Coupon coupon = this.lambdaQuery()
                 .eq(Coupon::getId, id)
                 .one();
-        if(coupon==null){
+        if (coupon == null) {
             throw new BizIllegalException("优惠卷不存在");
         }
         // 3.判断是否是立刻发放
@@ -104,11 +111,21 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         if (isBegin) {
             c.setStatus(CouponStatus.ISSUING);
             c.setIssueBeginTime(now);
-        }else{
+        } else {
             c.setStatus(CouponStatus.UN_ISSUE);
         }
         // 4.3.写入数据库
         updateById(c);
-        // TODO 兑换码生成
+        // 5.1 兑换码生成
+        coupon.setIssueBeginTime(c.getIssueBeginTime());
+        coupon.setIssueEndTime(c.getIssueEndTime());
+
+        // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放
+        if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
+            coupon.setIssueEndTime(c.getIssueEndTime());
+            exchangeCodeService.asyncGenerateCode(coupon);
+        }
+        coupon.setIssueEndTime(c.getIssueEndTime());
+        exchangeCodeService.asyncGenerateCode(coupon);
     }
 }

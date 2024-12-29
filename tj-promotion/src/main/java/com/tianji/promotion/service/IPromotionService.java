@@ -1,5 +1,6 @@
 package com.tianji.promotion.service;
 
+import com.tianji.promotion.domain.po.Coupon;
 import com.tianji.promotion.domain.po.Promotion;
 import com.baomidou.mybatisplus.extension.service.IService;
 
