@@ -33,22 +33,24 @@ public class LearningRecordDelayTaskHandler {
     private final DelayQueue<DelayTask<RecordTaskData>> queue = new DelayQueue<>();
     private final static String RECORD_KEY_TEMPLATE = "learning:record:{}";
     private static volatile boolean begin = true;
-static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
-        2,
-        60,
-        java.util.concurrent.TimeUnit.SECONDS,
-        new java.util.concurrent.LinkedBlockingQueue<Runnable>(1000));
+    static ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(2,
+            2,
+            60,
+            java.util.concurrent.TimeUnit.SECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<Runnable>(1000));
+
     @PostConstruct
-    public void init(){
+    public void init() {
         CompletableFuture.runAsync(this::handleDelayTask);
     }
+
     @PreDestroy
-    public void destroy(){
+    public void destroy() {
         begin = false;
         log.debug("延迟任务停止执行！");
     }
 
-    public void handleDelayTask(){
+    public void handleDelayTask() {
         while (begin) {
             try {
                 // 1.获取到期的延迟任务
@@ -61,12 +63,12 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
                                 RecordTaskData data = task.getData();
                                 // 2.查询Redis缓存
                                 LearningRecord record = readRecordCache(data.getLessonId(), data.getSectionId());
-                                log.info("缓存中的学习时长是:{},最新的学习时长是:{}",record.getMoment(),data.getMoment());
+                                log.info("缓存中的学习时长是:{},最新的学习时长是:{}", record.getMoment(), data.getMoment());
                                 if (record == null) {
                                     return;
                                 }
                                 // 3.比较数据，moment值
-                                if(!Objects.equals(data.getMoment(), record.getMoment())) {
+                                if (!Objects.equals(data.getMoment(), record.getMoment())) {
                                     // 不一致，说明用户还在持续提交播放进度，放弃旧数据
                                     return;
                                 }
@@ -90,10 +92,10 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
         }
     }
 
-    public void addLearningRecordTask(LearningRecord record){
+    public void addLearningRecordTask(LearningRecord record) {
         // 2.提交延迟任务到延迟队列 DelayQueue
         DelayTask<RecordTaskData> task = new DelayTask<>(new RecordTaskData(record), Duration.ofSeconds(20));
-        log.info("延时队列发送的消息的data对象是:{}",task.getData());
+        log.info("延时队列发送的消息的data对象是:{}", task.getData());
         queue.add(task);
     }
 
@@ -104,7 +106,7 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
             String json = JsonUtils.toJsonStr(new RecordCacheData(record));
             // 2.写入Redis
             String key = StringUtils.format(RECORD_KEY_TEMPLATE, record.getLessonId());
-            log.info("写入缓存数据，key:{},hashkey:{},value:{}", key,record.getSectionId().toString(),json);
+            log.info("写入缓存数据，key:{},hashkey:{},value:{}", key, record.getSectionId().toString(), json);
             redisTemplate.opsForHash().put(key, record.getSectionId().toString(), json);
             // 3.添加缓存过期时间
             redisTemplate.expire(key, Duration.ofMinutes(5));
@@ -113,7 +115,7 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
         }
     }
 
-    public LearningRecord readRecordCache(Long lessonId, Long sectionId){
+    public LearningRecord readRecordCache(Long lessonId, Long sectionId) {
         try {
             // 1.读取Redis数据
             String key = StringUtils.format(RECORD_KEY_TEMPLATE, lessonId);
@@ -129,7 +131,7 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
         }
     }
 
-    public void cleanRecordCache(Long lessonId, Long sectionId){
+    public void cleanRecordCache(Long lessonId, Long sectionId) {
         // 删除数据
         String key = StringUtils.format(RECORD_KEY_TEMPLATE, lessonId);
         redisTemplate.opsForHash().delete(key, sectionId.toString());
@@ -137,7 +139,7 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
 
     @Data
     @NoArgsConstructor
-    private static class RecordCacheData{
+    private static class RecordCacheData {
         private Long id;
         private Integer moment;
         private Boolean finished;
@@ -148,9 +150,10 @@ static ThreadPoolExecutor poolExecutor=new ThreadPoolExecutor(2,
             this.finished = record.getFinished();
         }
     }
+
     @Data
     @NoArgsConstructor
-    private static class RecordTaskData{
+    private static class RecordTaskData {
         private Long lessonId;
         private Long sectionId;
         private Integer moment;

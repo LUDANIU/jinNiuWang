@@ -10,6 +10,7 @@ import com.tianji.promotion.service.ICouponService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -43,6 +44,12 @@ public class CouponController {
     @PutMapping("{id}/issue")
     public void issueCoupon(@PathVariable Long id,@RequestBody @Valid CouponIssueFormDTO dto) {
        couponService.issueCoupon(id,dto);
+    }
+    @ApiOperation("修改优惠券")
+    @PutMapping("/{id}")
+    public void updateCoupon(@PathVariable("id") Long id,
+                             @Validated @RequestBody CouponFormDTO dto) {
+        couponService.updateCoupon(dto, id);
     }
 
 }

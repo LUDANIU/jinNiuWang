@@ -1,7 +1,9 @@
 package com.tianji.promotion.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDto;
+import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.StringUtils;
@@ -119,7 +121,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 5.1 兑换码生成
         coupon.setIssueBeginTime(c.getIssueBeginTime());
         coupon.setIssueEndTime(c.getIssueEndTime());
-
+        System.out.println("线程名称：" + Thread.currentThread().getName());
         // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放
         if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
             coupon.setIssueEndTime(c.getIssueEndTime());
@@ -127,5 +129,39 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
         coupon.setIssueEndTime(c.getIssueEndTime());
         exchangeCodeService.asyncGenerateCode(coupon);
+    }
+
+    /*
+     *修改优惠卷
+     * */
+    @Override
+    public void updateCoupon(CouponFormDTO dto, Long id) {
+        Coupon coupon = this.lambdaQuery()
+                .eq(Coupon::getId, id)
+                .one();
+        if (coupon == null) {
+            throw new BizIllegalException("优惠卷不存在");
+        }
+        if (coupon.getStatus() == CouponStatus.ISSUING ||
+                coupon.getStatus() == CouponStatus.FINISHED ||
+                coupon.getStatus() == CouponStatus.PAUSE) {
+            throw new BizIllegalException("优惠卷已经无法修改");
+        }
+        // 限定范围，需要校验dto.scopes
+        List<Long> scopes = dto.getScopes();
+        if (CollUtil.isEmpty(scopes)) {
+            throw new BadRequestException("分类id不能为空");
+        }
+        Coupon newCoupon = BeanUtils.copyBean(dto, Coupon.class);
+        this.updateById(newCoupon);
+        // 判断是否限定了范围
+        if (!dto.getSpecific()) { // 未限定范围
+            return;
+        }
+
+        // 限定范围，删除原来的范围，重新添加
+        couponScopeService.lambdaUpdate()
+                .eq(CouponScope::getCouponId, coupon.getId())
+                .remove();
     }
 }

@@ -21,6 +21,7 @@ public interface ICouponService extends IService<Coupon> {
      *新增优惠卷
      * */
     void saveCoupon(CouponFormDTO dto);
+
     /*
      *分页查询优惠卷
      * */
@@ -30,4 +31,9 @@ public interface ICouponService extends IService<Coupon> {
      *发放优惠卷
      * */
     void issueCoupon(Long id, CouponIssueFormDTO dto);
+
+    /*
+     *修改优惠卷
+     * */
+    void updateCoupon(CouponFormDTO dto, Long id);
 }
