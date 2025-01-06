@@ -51,5 +51,10 @@ public class CouponController {
                              @Validated @RequestBody CouponFormDTO dto) {
         couponService.updateCoupon(dto, id);
     }
+    @ApiOperation("删除优惠券")
+    @DeleteMapping("/{id}")
+    public void deleteCoupon(@PathVariable("id") Long id) {
+        couponService.deleteCoupon(id);
+    }
 
 }

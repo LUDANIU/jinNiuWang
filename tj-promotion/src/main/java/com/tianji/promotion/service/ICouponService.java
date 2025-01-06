@@ -36,4 +36,9 @@ public interface ICouponService extends IService<Coupon> {
      *修改优惠卷
      * */
     void updateCoupon(CouponFormDTO dto, Long id);
+
+    /*
+     *删除优惠卷
+     * */
+    void deleteCoupon(Long id);
 }

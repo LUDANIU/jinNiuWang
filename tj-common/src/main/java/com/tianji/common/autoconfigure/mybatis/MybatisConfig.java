@@ -32,11 +32,12 @@ public class MybatisConfig {
             @Autowired(required = false)DynamicTableNameInnerInterceptor dynamicTableNameInnerInterceptor
             ) {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
-        paginationInnerInterceptor.setMaxLimit(200L);
         if(dynamicTableNameInnerInterceptor!=null){
             interceptor.addInnerInterceptor(dynamicTableNameInnerInterceptor);
         }
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+        paginationInnerInterceptor.setMaxLimit(200L);
+        paginationInnerInterceptor.setOverflow(true);
         interceptor.addInnerInterceptor(paginationInnerInterceptor);
         interceptor.addInnerInterceptor(new MyBatisAutoFillInterceptor());
         return interceptor;

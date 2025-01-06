@@ -20,9 +20,7 @@ import com.tianji.promotion.service.ICouponScopeService;
 import com.tianji.promotion.service.ICouponService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.service.IExchangeCodeService;
-import com.tianji.promotion.service.IPromotionService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -121,14 +119,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 5.1 兑换码生成
         coupon.setIssueBeginTime(c.getIssueBeginTime());
         coupon.setIssueEndTime(c.getIssueEndTime());
-        System.out.println("线程名称：" + Thread.currentThread().getName());
         // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放
         if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
             coupon.setIssueEndTime(c.getIssueEndTime());
             exchangeCodeService.asyncGenerateCode(coupon);
         }
-        coupon.setIssueEndTime(c.getIssueEndTime());
-        exchangeCodeService.asyncGenerateCode(coupon);
     }
 
     /*
@@ -147,21 +142,48 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
                 coupon.getStatus() == CouponStatus.PAUSE) {
             throw new BizIllegalException("优惠卷已经无法修改");
         }
-        // 限定范围，需要校验dto.scopes
-        List<Long> scopes = dto.getScopes();
-        if (CollUtil.isEmpty(scopes)) {
-            throw new BadRequestException("分类id不能为空");
-        }
         Coupon newCoupon = BeanUtils.copyBean(dto, Coupon.class);
         this.updateById(newCoupon);
         // 判断是否限定了范围
         if (!dto.getSpecific()) { // 未限定范围
             return;
         }
-
+        // 限定范围，需要校验dto.scopes
+        List<Long> scopes = dto.getScopes();
+        if (CollUtil.isEmpty(scopes)) {
+            throw new BadRequestException("分类id不能为空");
+        }
         // 限定范围，删除原来的范围，重新添加
         couponScopeService.lambdaUpdate()
                 .eq(CouponScope::getCouponId, coupon.getId())
+                .remove();
+        List<CouponScope> couponScopeList = scopes.stream().map(scope ->
+                CouponScope.builder()
+                        .couponId(newCoupon.getId())
+                        .bizId(scope)
+                        .build()).collect(Collectors.toList());
+        couponScopeService.saveBatch(couponScopeList);
+    }
+
+    /**
+     * 删除优惠券，需要删除关联的优惠券范围信息
+     */
+    @Override
+    public void deleteCoupon(Long id) {
+        Coupon coupon = this.lambdaQuery()
+                .eq(Coupon::getId, id)
+                .one();
+        if (coupon == null) {
+            throw new BizIllegalException("优惠卷不存在");
+        }
+        if (coupon.getStatus() == CouponStatus.ISSUING ||
+                coupon.getStatus() == CouponStatus.FINISHED ||
+                coupon.getStatus() == CouponStatus.PAUSE) {
+            throw new BizIllegalException("优惠卷已经无法删除");
+        }
+        this.removeById(id);
+        couponScopeService.lambdaUpdate()
+                .eq(CouponScope::getCouponId, id)
                 .remove();
     }
 }
