@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.time.LocalDateTime;
 import java.io.Serializable;
+
+import com.tianji.promotion.enums.UserCouponStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -28,7 +30,7 @@ public class UserCoupon implements Serializable {
     /**
      * 用户券id
      */
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -59,7 +61,7 @@ public class UserCoupon implements Serializable {
     /**
      * 优惠券状态，1：未使用，2：已使用，3：已失效
      */
-    private Integer status;
+    private UserCouponStatus status;
 
     /**
      * 创建时间
