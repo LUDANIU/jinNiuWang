@@ -12,5 +12,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @since 2025-01-18
  */
 public interface IUserCouponService extends IService<UserCoupon> {
+    /**
+     * 用户领取优惠卷
+     * @param couponId 优惠卷id
+     */
+    void receiveCoupon(Long couponId);
 
+    void exchangeCoupon(String code);
 }

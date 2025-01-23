@@ -64,4 +64,16 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
         }
         this.saveBatch(exchangeCodes);
     }
+    /**
+     * 修改优惠卷对应位图
+     * @param serialNum 对应的位图位置
+     * @param b 修改的状态
+     * @return 修改前的状态
+     */
+    @Override
+    public boolean updateExchangeMark(Long serialNum, boolean b) {
+        Boolean boo = this.redisTemplate.opsForValue()
+                .setBit(PromotionConstants.COUPON_CODE_MAP_KEY, serialNum, b);
+        return  boo != null && boo;
+    }
 }

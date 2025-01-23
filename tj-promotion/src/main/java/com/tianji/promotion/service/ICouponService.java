@@ -7,6 +7,9 @@ import com.tianji.promotion.domain.po.Coupon;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.promotion.domain.query.CouponQuery;
 import com.tianji.promotion.domain.vo.CouponPageVO;
+import com.tianji.promotion.domain.vo.CouponVO;
+
+import java.util.List;
 
 /**
  * <p>
@@ -41,4 +44,9 @@ public interface ICouponService extends IService<Coupon> {
      *删除优惠卷
      * */
     void deleteCoupon(Long id);
+
+    /*
+     *返回正在发放的优惠卷
+     * */
+    List<CouponVO> queryIssuingCoupons();
 }
