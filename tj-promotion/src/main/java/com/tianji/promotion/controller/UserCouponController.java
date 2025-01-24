@@ -33,4 +33,5 @@ public class UserCouponController {
     public void exchangeCoupon(@PathVariable("code") String code){
         userCouponService.exchangeCoupon(code);
     }
+
 }
