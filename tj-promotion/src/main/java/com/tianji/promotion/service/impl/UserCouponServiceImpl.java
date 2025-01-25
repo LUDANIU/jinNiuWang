@@ -14,6 +14,8 @@ import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import com.tianji.promotion.utils.CodeUtil;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,10 +33,9 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCoupon> implements IUserCouponService {
-    private final UserCouponMapper userCouponMapper;
     private final CouponMapper couponMapper;
     private final IExchangeCodeService codeService;
-
+    private final RedissonClient redissonClient;
 
     /**
      * 用户领取优惠卷
@@ -64,9 +65,17 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         // 4.2.校验限领数量
         // 5.更新优惠券的已经发放的数量 + 1
         // 6.新增一个用户券
-        synchronized (userId.toString().intern()) {
+        String key = "lock:coupon:uid" + userId;
+        RLock lock = redissonClient.getLock(key);
+        try {
+            boolean isLock = lock.tryLock();
+            if (!isLock) {
+                throw new RuntimeException("请稍后再试");
+            }
             IUserCouponService userCouponService = (IUserCouponService) AopContext.currentProxy();
             userCouponService.checkAndCreateUserCoupon(coupon, userId, null);
+        } finally {
+            lock.unlock();
         }
     }
 
