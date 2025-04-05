@@ -38,26 +38,26 @@ public class CouponIssueChangeHandler {
 
     private void finishIssueCoupon(int shardTotal, int shardIndex) {
         //查看所有当前状态时
-       int pageNumber= shardIndex+1;
+        int pageNumber = shardIndex + 1;
         while (true) {
-            Page<Coupon> page=new Page<>(pageNumber,2);
-            log.info("开始查询第{}页",pageNumber);
-            page= couponService.lambdaQuery()
+            Page<Coupon> page = new Page<>(pageNumber, 2);
+            log.info("开始查询第{}页", pageNumber);
+            page = couponService.lambdaQuery()
                     .eq(Coupon::getStatus, CouponStatus.ISSUING)
                     .le(Coupon::getIssueEndTime, LocalDateTime.now())
                     .page(page);
-            log.info("查询到{}页优惠卷的信息是：{}",pageNumber,page.getRecords().get(0));
-            log.info("和：{}",page.getRecords().get(1));
+            log.info("查询到{}页优惠卷的信息是：{}", pageNumber, page.getRecords().get(0));
+            log.info("和：{}", page.getRecords().get(1));
             //如果查询到对应的优惠卷就结束优惠卷并且继续循环
             for (Coupon record : page.getRecords()) {
                 couponService.lambdaUpdate()
                         .set(Coupon::getStatus, CouponStatus.FINISHED)
                         .eq(Coupon::getId, record.getId())
                         .update();
-                log.info("结束了name:{} id：{}的优惠卷的发放",record.getName(),record.getId());
+                log.info("结束了name:{} id：{}的优惠卷的发放", record.getName(), record.getId());
             }
-            pageNumber+=shardTotal;
-            if (pageNumber>page.getPages()) {
+            pageNumber += shardTotal;
+            if (pageNumber > page.getPages()) {
                 break;
             }
         }

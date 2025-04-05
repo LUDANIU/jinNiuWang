@@ -91,12 +91,12 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
         return reocord.stream().map(
                 LikedRecord::getBizId
         ).collect(Collectors.toSet());*/
-        Set<Long> set=new HashSet<>();
+        Set<Long> set = new HashSet<>();
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            for(Long bizId : bizIds){
-                Boolean isMember=redisTemplate.opsForSet().isMember(RedisConstants.LIKE_BIZ_KEY_PREFIX + bizId,
+            for (Long bizId : bizIds) {
+                Boolean isMember = redisTemplate.opsForSet().isMember(RedisConstants.LIKE_BIZ_KEY_PREFIX + bizId,
                         UserContext.getUser().toString());
-                if(isMember){
+                if (isMember) {
                     set.add(bizId);
                 }
             }

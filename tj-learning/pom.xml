@@ -16,6 +16,12 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
     <dependencies>
+        <!--RPC框架-->
+        <dependency>
+        <groupId>com.ludaniu</groupId>
+        <artifactId>net-daniu</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        </dependency>
         <!--auth-sdk-->
         <dependency>
             <groupId>com.tianji</groupId>
